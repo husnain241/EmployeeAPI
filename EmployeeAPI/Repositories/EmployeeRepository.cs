@@ -1,17 +1,17 @@
 ﻿using EmployeeAPI.Data;
 using EmployeeAPI.Dtos;
 using EmployeeAPI.Models;
+using EmployeeAPI.Common; // Result class ka namespace
 using Microsoft.EntityFrameworkCore;
 
 namespace EmployeeAPI.Repositories
 {
-
     public class EmployeeRepository : IEmployeeRepository
     {
         private readonly AppDbContext _context;
         public EmployeeRepository(AppDbContext context) => _context = context;
 
-        public async Task<IEnumerable<EmployeeReadDto>> GetAllAsync(string? name, string? department, int pageNumber, int pageSize)
+        public async Task<Result<IEnumerable<EmployeeReadDto>>> GetAllAsync(string? name, string? department, int pageNumber, int pageSize)
         {
             IQueryable<Employee> query = _context.Employees.AsNoTracking();
 
@@ -21,7 +21,7 @@ namespace EmployeeAPI.Repositories
             if (!string.IsNullOrWhiteSpace(department))
                 query = query.Where(e => e.Department == department);
 
-            return await query
+            var data = await query
                 .OrderBy(e => e.Id)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
@@ -31,13 +31,18 @@ namespace EmployeeAPI.Repositories
                     Name = e.Name,
                     Department = e.Department,
                     Age = e.Age,
-                    Email = e.Email
+                    Email = e.Email,
+                    Detail=e.Detail,
+                    Cities = e.Addresses.Select(a => a.City).ToList()
+
                 }).ToListAsync();
+
+            return Result<IEnumerable<EmployeeReadDto>>.Success(data, "Employees fetched successfully");
         }
 
-        public async Task<EmployeeReadDto?> GetByIdAsync(int id)
+        public async Task<Result<EmployeeReadDto>> GetByIdAsync(int id)
         {
-            return await _context.Employees
+            var employee = await _context.Employees
                 .AsNoTracking()
                 .Where(e => e.Id == id)
                 .Select(e => new EmployeeReadDto
@@ -48,10 +53,19 @@ namespace EmployeeAPI.Repositories
                     Age = e.Age,
                     Email = e.Email
                 }).FirstOrDefaultAsync();
+
+            if (employee == null)
+                return Result<EmployeeReadDto>.Failure($"Employee with ID {id} not found");
+
+            return Result<EmployeeReadDto>.Success(employee);
         }
 
-        public async Task<EmployeeReadDto> AddAsync(EmployeeCreateDto dto)
+        public async Task<Result<EmployeeReadDto>> AddAsync(EmployeeCreateDto dto)
         {
+            // Optional: Business logic check
+            var exists = await _context.Employees.AnyAsync(e => e.Email == dto.Email);
+            if (exists) return Result<EmployeeReadDto>.Failure("Email already exists");
+
             var employee = new Employee
             {
                 Name = dto.Name,
@@ -63,7 +77,7 @@ namespace EmployeeAPI.Repositories
             await _context.Employees.AddAsync(employee);
             await _context.SaveChangesAsync();
 
-            return new EmployeeReadDto
+            var readDto = new EmployeeReadDto
             {
                 Id = employee.Id,
                 Name = employee.Name,
@@ -71,9 +85,11 @@ namespace EmployeeAPI.Repositories
                 Age = employee.Age,
                 Email = employee.Email
             };
+
+            return Result<EmployeeReadDto>.Success(readDto, "Employee created successfully");
         }
 
-        public async Task<bool> UpdateAsync(int id, EmployeeUpdateDto dto)
+        public async Task<Result<bool>> UpdateAsync(int id, EmployeeUpdateDto dto)
         {
             var employee = new Employee
             {
@@ -89,23 +105,25 @@ namespace EmployeeAPI.Repositories
 
             try
             {
-                return await _context.SaveChangesAsync() > 0;
+                await _context.SaveChangesAsync();
+                return Result<bool>.Success(true, "Employee updated successfully");
             }
             catch (DbUpdateConcurrencyException)
             {
-                return false;
+                return Result<bool>.Failure("Update failed: Employee not found");
             }
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<Result<bool>> DeleteAsync(int id)
         {
-            // Direct Delete Optimization
             var employee = await _context.Employees.FindAsync(id);
-            if (employee == null) return false;
+            if (employee == null)
+                return Result<bool>.Failure("Delete failed: Employee not found");
 
             _context.Employees.Remove(employee);
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync();
+
+            return Result<bool>.Success(true, "Employee deleted successfully");
         }
     }
-
 }

@@ -1,12 +1,9 @@
 ﻿using EmployeeAPI.Dtos;
-using EmployeeAPI.Models;
 using EmployeeAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
-
 namespace EmployeeAPI.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
     public class EmployeesController : ControllerBase
@@ -15,38 +12,63 @@ namespace EmployeeAPI.Controllers
         public EmployeesController(IEmployeeRepository repository) => _repository = repository;
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetEmployees(
-            [FromQuery] string? name, [FromQuery] string? department, int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetEmployees(
+            [FromQuery] string? name,
+            [FromQuery] string? department,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            return Ok(await _repository.GetAllAsync(name, department, pageNumber, pageSize));
+            var result = await _repository.GetAllAsync(name, department, pageNumber, pageSize);
+            // Get mein aksar hum direct result bhej dete hain kyunki ye fail kam hota hai
+            return Ok(result);
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<EmployeeReadDto>> GetEmployee(int id)
+        public async Task<IActionResult> GetEmployee(int id)
         {
             var result = await _repository.GetByIdAsync(id);
-            return result == null ? NotFound() : Ok(result);
+
+            if (!result.IsSuccess)
+                return NotFound(result); // 404 with error message in Result object
+
+            return Ok(result); // 200 with data in Result object
         }
 
         [HttpPost]
-        public async Task<ActionResult<EmployeeReadDto>> CreateEmployee([FromBody] EmployeeCreateDto dto)
+        public async Task<IActionResult> CreateEmployee([FromBody] EmployeeCreateDto dto)
         {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var result = await _repository.AddAsync(dto);
-            return CreatedAtAction(nameof(GetEmployee), new { id = result.Id }, result);
+
+            if (!result.IsSuccess)
+                return BadRequest(result); // e.g., Email already exists
+
+            return CreatedAtAction(nameof(GetEmployee), new { id = result.Data!.Id }, result);
         }
 
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeUpdateDto dto)
         {
-            var success = await _repository.UpdateAsync(id, dto);
-            return success ? NoContent() : NotFound();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var result = await _repository.UpdateAsync(id, dto);
+
+            if (!result.IsSuccess)
+                return NotFound(result); // Record not found or update failed
+
+            return Ok(result); // Noocntent ki bajaye Result bhej rahe hain taake message mil sake
         }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
-            var success = await _repository.DeleteAsync(id);
-            return success ? NoContent() : NotFound();
+            var result = await _repository.DeleteAsync(id);
+
+            if (!result.IsSuccess)
+                return NotFound(result);
+
+            return Ok(result); // Result object with success message
         }
     }
 }

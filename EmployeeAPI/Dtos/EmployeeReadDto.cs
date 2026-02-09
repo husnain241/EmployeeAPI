@@ -11,11 +11,15 @@ namespace EmployeeAPI.Dtos
         public string? Email { get; set; }
 
         public string Detail { get; set; } = string.Empty;
+
+        // Address se related property (optional, agar address include karna chahte hain)
+        public List<string> Cities { get; set; } = new();
+
     }
 
 
 
-public class EmployeeCreateDto
+    public class EmployeeCreateDto
     {
         [Required, StringLength(100)]
         public string Name { get; set; } = string.Empty;

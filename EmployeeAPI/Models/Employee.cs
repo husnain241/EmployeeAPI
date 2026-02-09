@@ -25,5 +25,8 @@ namespace EmployeeAPI.Models
         [Required, StringLength(500)]
         public string Detail { get; set; } = string.Empty;
 
+
+        // One-to-Many: Aik employee ke kaafi addresses ho sakte hain
+        public List<Address> Addresses { get; set; } = new();
     }
 }

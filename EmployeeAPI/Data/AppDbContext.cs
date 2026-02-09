@@ -13,6 +13,8 @@ namespace EmployeeAPI.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Employee> Employees => Set<Employee>();
+
+        public DbSet<Address> Addresss => Set<Address>();
     }
 
 }
