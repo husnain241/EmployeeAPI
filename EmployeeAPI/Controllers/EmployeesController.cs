@@ -7,139 +7,46 @@ using Microsoft.AspNetCore.Mvc;
 namespace EmployeeAPI.Controllers
 {
 
-
     [ApiController]
     [Route("api/[controller]")]
     public class EmployeesController : ControllerBase
     {
         private readonly IEmployeeRepository _repository;
+        public EmployeesController(IEmployeeRepository repository) => _repository = repository;
 
-        public EmployeesController(IEmployeeRepository repository) =>
-            _repository = repository;
-
-        //[HttpGet]
-        //public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetEmployees(
-        //    [FromQuery] string? name, [FromQuery] string? department)
-        //{
-        //    var employees = await _repository.GetAllAsync(name, department);
-        //    var dtos = employees.Select(e => new EmployeeReadDto
-        //    {
-        //        Id = e.Id,
-        //        Name = e.Name,
-        //        Department = e.Department,
-        //        Age = e.Age,
-        //        Email = e.Email,
-        //        Detail = e.Detail // Default detail
-
-        //    });
-
-        //    return Ok(dtos); // 200
-        //}
-
-
-        /// <summary>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetEmployees(
-     [FromQuery] string? name,
-     [FromQuery] string? department,
-     [FromQuery] int pageNumber = 1,
-     [FromQuery] int pageSize = 10)
+            [FromQuery] string? name, [FromQuery] string? department, int pageNumber = 1, int pageSize = 10)
         {
-            var dtos = await _repository.GetAllAsync(name, department, pageNumber, pageSize);
-            return Ok(dtos);
+            return Ok(await _repository.GetAllAsync(name, department, pageNumber, pageSize));
         }
-
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
 
         [HttpGet("{id:int}")]
         public async Task<ActionResult<EmployeeReadDto>> GetEmployee(int id)
         {
-            var employee = await _repository.GetByIdAsync(id);
-            if (employee == null)
-                return NotFound(); // 404
-
-            var dto = new EmployeeReadDto
-            {
-                Id = employee.Id,
-                Name = employee.Name,
-                Department = employee.Department,
-                Age = employee.Age,
-                Email = employee.Email
-                
-            };
-
-            return Ok(dto); // 200
+            var result = await _repository.GetByIdAsync(id);
+            return result == null ? NotFound() : Ok(result);
         }
 
         [HttpPost]
-        public async Task<ActionResult<EmployeeReadDto>> CreateEmployee(
-            [FromBody] EmployeeCreateDto dto)
+        public async Task<ActionResult<EmployeeReadDto>> CreateEmployee([FromBody] EmployeeCreateDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState); // 400
-
-            var employee = new Employee
-            {
-                Name = dto.Name,
-                Department = dto.Department,
-                Age = dto.Age,
-                Email = dto.Email,
-            };
-
-            await _repository.AddAsync(employee);
-            await _repository.SaveChangesAsync();
-
-            var readDto = new EmployeeReadDto
-            {
-                Id = employee.Id,
-                Name = employee.Name,
-                Department = employee.Department,
-                Age = employee.Age,
-                Email = employee.Email
-            };
-
-            return CreatedAtAction(nameof(GetEmployee),
-                new { id = employee.Id }, readDto); // 201
+            var result = await _repository.AddAsync(dto);
+            return CreatedAtAction(nameof(GetEmployee), new { id = result.Id }, result);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateEmployee(
-            int id, [FromBody] EmployeeUpdateDto dto)
+        public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeUpdateDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState); // 400
-
-            var employee = await _repository.GetByIdAsync(id);
-            if (employee == null)
-                return NotFound(); // 404
-
-            employee.Name = dto.Name;
-            employee.Department = dto.Department;
-            employee.Age = dto.Age;
-            employee.Email = dto.Email;
-
-            _repository.Update(employee);
-            await _repository.SaveChangesAsync();
-
-            return NoContent(); // 204
+            var success = await _repository.UpdateAsync(id, dto);
+            return success ? NoContent() : NotFound();
         }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
-            var employee = await _repository.GetByIdAsync(id);
-            if (employee == null)
-                return NotFound(); // 404
-
-            _repository.Remove(employee);
-            await _repository.SaveChangesAsync();
-
-            return NoContent(); // 204
+            var success = await _repository.DeleteAsync(id);
+            return success ? NoContent() : NotFound();
         }
-
-       
-
     }
 }

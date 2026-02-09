@@ -1,20 +1,10 @@
 ﻿using EmployeeAPI.Dtos;
-using EmployeeAPI.Models;
 
-namespace EmployeeAPI.Repositories
+public interface IEmployeeRepository
 {
-    // Repositories/IEmployeeRepository.cs
-    public interface IEmployeeRepository
-    {
-        //Task<IEnumerable<Employee>> GetAllAsync(string? name, string? department);
-        Task<IEnumerable<EmployeeReadDto>> GetAllAsync(string? name, string? department, int pageNumber, int pageSize);
-
-        Task<Employee?> GetByIdAsync(int id);
-        Task AddAsync(Employee employee);
-        void Update(Employee employee);
-        void Remove(Employee employee);
-        Task<bool> SaveChangesAsync();
-
-    }
-
+    Task<IEnumerable<EmployeeReadDto>> GetAllAsync(string? name, string? department, int pageNumber, int pageSize);
+    Task<EmployeeReadDto?> GetByIdAsync(int id);
+    Task<EmployeeReadDto> AddAsync(EmployeeCreateDto dto);
+    Task<bool> UpdateAsync(int id, EmployeeUpdateDto dto);
+    Task<bool> DeleteAsync(int id);
 }
