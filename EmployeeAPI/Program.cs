@@ -14,8 +14,14 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+// Program.cs mein add karein
+builder.Services.AddResponseCompression(options => {
+    options.EnableForHttps = true;
+});
 
 var app = builder.Build();
+app.UseResponseCompression();
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

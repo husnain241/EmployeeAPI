@@ -11,18 +11,60 @@ namespace EmployeeAPI.Repositories
         private readonly AppDbContext _context;
         public EmployeeRepository(AppDbContext context) => _context = context;
 
-        public async Task<IEnumerable<Employee>> GetAllAsync(string? name, string? department)
-        {
-            IQueryable<Employee> query = _context.Employees;
 
+        ////NORMAL METHOD
+
+        //public async Task<IEnumerable<Employee>> GetAllAsync(string? name, string? department)
+        //{
+        //    IQueryable<Employee> query = _context.Employees;
+
+        //    if (!string.IsNullOrWhiteSpace(name))
+        //        query = query.Where(e => e.Name.Contains(name));
+
+        //    if (!string.IsNullOrWhiteSpace(department))
+        //        query = query.Where(e => e.Department == department);
+
+        //    return await query.ToListAsync();
+        //}
+
+
+        /// <summary>
+        /// Optimazation Method
+        /// 
+        /// 
+        public async Task<IEnumerable<EmployeeReadDto>> GetAllAsync(
+     string? name,
+     string? department,
+     int pageNumber = 1,
+     int pageSize = 10) // Optional params hamesha end mein
+        {
+            IQueryable<Employee> query = _context.Employees.AsNoTracking();
+
+            // Filtering
             if (!string.IsNullOrWhiteSpace(name))
                 query = query.Where(e => e.Name.Contains(name));
 
             if (!string.IsNullOrWhiteSpace(department))
                 query = query.Where(e => e.Department == department);
 
-            return await query.ToListAsync();
+            // Pagination logic
+            return await query
+                .OrderBy(e => e.Id) // Pagination ke liye OrderBy lazmi hai
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(e => new EmployeeReadDto
+                {
+                    Id = e.Id,
+                    Name = e.Name,
+                    Department = e.Department,
+                    Age = e.Age,
+                    Email = e.Email
+                })
+                .ToListAsync();
         }
+
+        /// </summary>
+
 
         public Task<Employee?> GetByIdAsync(int id) =>
             _context.Employees.FirstOrDefaultAsync(e => e.Id == id);

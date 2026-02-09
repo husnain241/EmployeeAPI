@@ -17,24 +17,41 @@ namespace EmployeeAPI.Controllers
         public EmployeesController(IEmployeeRepository repository) =>
             _repository = repository;
 
+        //[HttpGet]
+        //public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetEmployees(
+        //    [FromQuery] string? name, [FromQuery] string? department)
+        //{
+        //    var employees = await _repository.GetAllAsync(name, department);
+        //    var dtos = employees.Select(e => new EmployeeReadDto
+        //    {
+        //        Id = e.Id,
+        //        Name = e.Name,
+        //        Department = e.Department,
+        //        Age = e.Age,
+        //        Email = e.Email,
+        //        Detail = e.Detail // Default detail
+
+        //    });
+
+        //    return Ok(dtos); // 200
+        //}
+
+
+        /// <summary>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EmployeeReadDto>>> GetEmployees(
-            [FromQuery] string? name, [FromQuery] string? department)
+     [FromQuery] string? name,
+     [FromQuery] string? department,
+     [FromQuery] int pageNumber = 1,
+     [FromQuery] int pageSize = 10)
         {
-            var employees = await _repository.GetAllAsync(name, department);
-            var dtos = employees.Select(e => new EmployeeReadDto
-            {
-                Id = e.Id,
-                Name = e.Name,
-                Department = e.Department,
-                Age = e.Age,
-                Email = e.Email,
-                Detail = e.Detail // Default detail
-
-            });
-
-            return Ok(dtos); // 200
+            var dtos = await _repository.GetAllAsync(name, department, pageNumber, pageSize);
+            return Ok(dtos);
         }
+
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
 
         [HttpGet("{id:int}")]
         public async Task<ActionResult<EmployeeReadDto>> GetEmployee(int id)
@@ -50,6 +67,7 @@ namespace EmployeeAPI.Controllers
                 Department = employee.Department,
                 Age = employee.Age,
                 Email = employee.Email
+                
             };
 
             return Ok(dto); // 200
