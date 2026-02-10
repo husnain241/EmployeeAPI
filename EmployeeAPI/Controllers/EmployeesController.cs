@@ -12,6 +12,7 @@ namespace EmployeeAPI.Controllers
         public EmployeesController(IEmployeeRepository repository) => _repository = repository;
 
         [HttpGet]
+        [ResponseCache(Duration = 30)] // 60 seconds tak cache rahega
         public async Task<IActionResult> GetEmployees(
             [FromQuery] string? name,
             [FromQuery] string? department,

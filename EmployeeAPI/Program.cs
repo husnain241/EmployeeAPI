@@ -18,10 +18,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddResponseCompression(options => {
     options.EnableForHttps = true;
 });
+// 1. Service add karein
+builder.Services.AddResponseCaching();
 
 var app = builder.Build();
 app.UseResponseCompression();
-
+app.UseResponseCaching();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
