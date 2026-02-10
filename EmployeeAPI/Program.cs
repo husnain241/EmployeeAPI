@@ -1,7 +1,7 @@
 using EmployeeAPI.Data;
 using EmployeeAPI.Repositories;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +18,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddResponseCompression(options => {
     options.EnableForHttps = true;
 });
+
+// Purani red line mita kar ye likhein
+builder.Services.AddValidatorsFromAssemblyContaining<EmployeeValidator>();
+
 builder.Services.AddMemoryCache();
 // 1. Service add karein
 //builder.Services.AddResponseCaching();

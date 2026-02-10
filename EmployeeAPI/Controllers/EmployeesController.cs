@@ -1,6 +1,7 @@
 ﻿using EmployeeAPI.Common;
 using EmployeeAPI.Dtos;
 using EmployeeAPI.Repositories;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -12,41 +13,36 @@ namespace EmployeeAPI.Controllers
     {
         private readonly IEmployeeRepository _repository;
         private readonly IMemoryCache _cache;
-        public EmployeesController(IEmployeeRepository repository,IMemoryCache cache)
+        private readonly IValidator<EmployeeCreateDto> _createValidator; // Yeh line check karein
+        public EmployeesController(IEmployeeRepository repository,IMemoryCache cache, IValidator<EmployeeCreateDto> createValidator)    
         {
             _repository = repository;
             _cache = cache;
+            _createValidator = createValidator;
         }
 
         [HttpGet]
-       // [ResponseCache(Duration = 30)] // 60 seconds tak cache rahega
         public async Task<IActionResult> GetEmployees(
-            [FromQuery] string? name,
-            [FromQuery] string? department,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+     [FromQuery] string? name,
+     [FromQuery] string? department,
+     [FromQuery] int pageNumber = 1,
+     [FromQuery] int pageSize = 10)
         {
-            string cacheKey = "all_employees_data";
+            // Unique key jo filter aur page par depend kare
+            string cacheKey = $"emps_{name}_{department}_{pageNumber}_{pageSize}";
 
             if (!_cache.TryGetValue(cacheKey, out Result<IEnumerable<EmployeeReadDto>> cachedEmployees))
             {
-                // 2. Agar nahi hai, toh Database se mangwayein
                 cachedEmployees = await _repository.GetAllAsync(name, department, pageNumber, pageSize);
-                //var result = await _repository.GetAllAsync(name, department, pageNumber, pageSize);
 
-                // 3. Cache settings define karein
                 var cacheOptions = new MemoryCacheEntryOptions()
-                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(10)) // 10 min baad lazmi expire hoga
-                    .SetSlidingExpiration(TimeSpan.FromMinutes(2))  // Agar 2 min tak koi na poochay toh expire
-                    .SetPriority(CacheItemPriority.Normal);
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(1))
+                    .SetSlidingExpiration(TimeSpan.FromSeconds(60));
 
-                // 4. Data ko cache mein save kar dein
                 _cache.Set(cacheKey, cachedEmployees, cacheOptions);
-
-
             }
-                // Get mein aksar hum direct result bhej dete hain kyunki ye fail kam hota hai
-                return Ok(cachedEmployees);
+
+            return Ok(cachedEmployees);
         }
 
         [HttpGet("{id:int}")]
@@ -64,12 +60,20 @@ namespace EmployeeAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateEmployee([FromBody] EmployeeCreateDto dto)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            // 1. Fluent Validation ko manually call karein
+            var validationResult = await _createValidator.ValidateAsync(dto);
 
+            if (!validationResult.IsValid)
+            {
+                // Yahan 'Select' use karne se saare errors aik list mein aa jayenge
+                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return BadRequest(new { Errors = errorMessages });
+            }
+            // 2. Baaki logic wahi rahegi
             var result = await _repository.AddAsync(dto);
 
             if (!result.IsSuccess)
-                return BadRequest(result); // e.g., Email already exists
+                return BadRequest(result);
 
             _cache.Remove("all_employees_data");
 
