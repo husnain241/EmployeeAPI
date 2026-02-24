@@ -3,7 +3,7 @@ using EmployeeAPI.Repositories;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
-
+//building services 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetSection("AppDbContext")["ConnStr"] ?? throw new InvalidOperationException("Connection string not found.")));
